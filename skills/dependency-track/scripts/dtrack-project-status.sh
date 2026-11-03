@@ -3,9 +3,11 @@
 # Usage: dtrack-project-status.sh <project-uuid>
 set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_lib.sh"
 PROJECT_UUID="${1:-}"
 
 [[ -z "$PROJECT_UUID" ]] && { echo "Usage: $0 <project-uuid>" >&2; exit 1; }
+dt_require_uuid "project-uuid" "$PROJECT_UUID"
 
 PROJECT=$("$SCRIPT_DIR/dtrack-api.sh" GET "/v1/project/${PROJECT_UUID}")
 METRICS=$("$SCRIPT_DIR/dtrack-api.sh" GET "/v1/metrics/project/${PROJECT_UUID}/current" 2>/dev/null || echo '{}')

@@ -3,12 +3,13 @@
 # Usage: dtrack-projects.sh [search-name] [--inactive] [--tag TAG]
 set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_lib.sh"
 
 SEARCH_NAME="" ; INCLUDE_INACTIVE="" ; TAG_FILTER=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --inactive) INCLUDE_INACTIVE="true"; shift ;;
-        --tag) TAG_FILTER="$2"; shift 2 ;;
+        --tag) TAG_FILTER="${2:-}"; shift 2 ;;
         *) [[ -z "$SEARCH_NAME" ]] && SEARCH_NAME="$1"; shift ;;
     esac
 done
@@ -21,7 +22,7 @@ ALL_PROJECTS="[]"
 while true; do
     ENDPOINT="/v1/project?pageSize=${PAGE_SIZE}&pageNumber=${PAGE_NUM}&sortName=name&sortOrder=asc"
     [[ "$INCLUDE_INACTIVE" != "true" ]] && ENDPOINT="${ENDPOINT}&excludeInactive=true"
-    [[ -n "$TAG_FILTER" ]] && ENDPOINT="${ENDPOINT}&tag=${TAG_FILTER}"
+    [[ -n "$TAG_FILTER" ]] && ENDPOINT="${ENDPOINT}&tag=$(dt_urlencode "$TAG_FILTER")"
 
     PAGE_RESULT=$("$SCRIPT_DIR/dtrack-api.sh" GET "$ENDPOINT")
 

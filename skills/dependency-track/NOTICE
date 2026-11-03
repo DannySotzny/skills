@@ -10,3 +10,14 @@ Modifications in this copy (DannySotzny/skills):
 - Moved the test suite to tests/test-dependency-track.sh inside the skill and
   added a check for dtrack-setup.sh.
 - Updated README.md (install source, complete script table, setup, tests).
+- Security hardening: dtrack-api.sh no longer follows redirects, accepts only an
+  API path plus a JSON body (no arbitrary curl arguments), and passes the API
+  key via a temporary header file; _config.sh validates the server URL and
+  warns on plain HTTP; new scripts/_lib.sh validates UUIDs, enums and page
+  numbers and URL-encodes free text; dtrack-findings.sh passes filters to jq
+  as --arg; dtrack-bom-upload.sh only uploads CycloneDX/SPDX files and builds
+  the payload in temp files.
+- dtrack-setup.sh gained --status, --url and --key for agent-guided setup.
+- SKILL.md: first-use flow and safety rules (confirm writes, treat API data as
+  untrusted, never handle the key in chat).
+- Packaged as a Claude Code plugin via .claude-plugin/marketplace.json.

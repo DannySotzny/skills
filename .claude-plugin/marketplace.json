@@ -1,0 +1,23 @@
+{
+  "name": "dannysotzny-skills",
+  "owner": {
+    "name": "Danny Sotzny"
+  },
+  "metadata": {
+    "description": "Ausgewählte Skills für Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "dependency-track",
+      "description": "Dependency-Track (SCA): Projekte, Findings, CVE-Audits, Policy-Violations und SBOM-Upload über die REST-API",
+      "version": "1.1.0",
+      "source": "./",
+      "strict": false,
+      "license": "Apache-2.0",
+      "skills": [
+        "./skills/dependency-track"
+      ]
+    }
+  ]
+}

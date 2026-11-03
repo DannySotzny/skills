@@ -3,9 +3,11 @@
 # Usage: dtrack-metrics-refresh.sh [project-uuid]
 set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_lib.sh"
 PROJECT_UUID="${1:-}"
 
 if [[ -n "$PROJECT_UUID" ]]; then
+    dt_require_uuid "project-uuid" "$PROJECT_UUID"
     echo "Refreshing metrics for project ${PROJECT_UUID}..." >&2
     "$SCRIPT_DIR/dtrack-api.sh" GET "/v1/metrics/project/${PROJECT_UUID}/refresh" >/dev/null 2>&1 || true
     sleep 2

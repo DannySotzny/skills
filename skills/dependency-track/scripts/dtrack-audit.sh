@@ -8,6 +8,7 @@
 # Responses:      CAN_NOT_FIX | WILL_NOT_FIX | UPDATE | ROLLBACK | WORKAROUND_AVAILABLE | NOT_SET
 set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_lib.sh"
 
 PROJECT_UUID="${1:-}"; COMPONENT_UUID="${2:-}"; VULNERABILITY_UUID="${3:-}"
 shift 3 2>/dev/null || true
@@ -15,11 +16,11 @@ shift 3 2>/dev/null || true
 STATE=""; JUSTIFICATION=""; RESPONSE=""; COMMENT=""; DETAILS=""; SUPPRESS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --state)         STATE="$2";         shift 2 ;;
-        --justification) JUSTIFICATION="$2"; shift 2 ;;
-        --response)      RESPONSE="$2";      shift 2 ;;
-        --comment)       COMMENT="$2";       shift 2 ;;
-        --details)       DETAILS="$2";       shift 2 ;;
+        --state)         STATE="${2:-}";         shift 2 ;;
+        --justification) JUSTIFICATION="${2:-}"; shift 2 ;;
+        --response)      RESPONSE="${2:-}";      shift 2 ;;
+        --comment)       COMMENT="${2:-}";       shift 2 ;;
+        --details)       DETAILS="${2:-}";       shift 2 ;;
         --suppress)      SUPPRESS="true";    shift ;;
         --unsuppress)    SUPPRESS="false";   shift ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -37,6 +38,12 @@ Usage: dtrack-audit.sh <project> <component> <vulnerability> --state STATE [opts
 EOF
     exit 1
 fi
+dt_require_uuid "project-uuid" "$PROJECT_UUID"
+dt_require_uuid "component-uuid" "$COMPONENT_UUID"
+dt_require_uuid "vulnerability-uuid" "$VULNERABILITY_UUID"
+dt_require_enum "--state" "EXPLOITABLE IN_TRIAGE FALSE_POSITIVE NOT_AFFECTED RESOLVED NOT_SET" "$STATE"
+[[ -n "$JUSTIFICATION" ]] && dt_require_enum "--justification" "CODE_NOT_PRESENT CODE_NOT_REACHABLE REQUIRES_CONFIGURATION REQUIRES_DEPENDENCY REQUIRES_ENVIRONMENT PROTECTED_BY_COMPILER PROTECTED_AT_RUNTIME PROTECTED_AT_PERIMETER PROTECTED_BY_MITIGATING_CONTROL NOT_SET" "$JUSTIFICATION"
+[[ -n "$RESPONSE" ]] && dt_require_enum "--response" "CAN_NOT_FIX WILL_NOT_FIX UPDATE ROLLBACK WORKAROUND_AVAILABLE NOT_SET" "$RESPONSE"
 
 PAYLOAD=$(jq -n \
     --arg p "$PROJECT_UUID" --arg c "$COMPONENT_UUID" --arg v "$VULNERABILITY_UUID" \

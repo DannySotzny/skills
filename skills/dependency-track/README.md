@@ -26,7 +26,7 @@ Dependency-Track tells you which of your 500 dependencies have known CVEs. This 
 
 | Script | Purpose |
 |--------|---------|
-| `dtrack-setup.sh` | Interactive configuration (`--check` to verify only) |
+| `dtrack-setup.sh` | Configuration: `--status`, `--url URL`, `--key` (hidden prompt), `--check` |
 | `dtrack-projects.sh` | List/search projects with pagination |
 | `dtrack-project-lookup.sh` | Look up project by name and version |
 | `dtrack-project-status.sh` | Vulnerability summary for a project |
@@ -41,27 +41,42 @@ Dependency-Track tells you which of your 500 dependencies have known CVEs. This 
 | `dtrack-metrics-refresh.sh` | Trigger a metrics refresh |
 | `dtrack-api.sh` | HTTP helper and raw API access |
 | `_config.sh` | Configuration loader |
+| `_lib.sh` | Input validation and URL encoding helpers |
 
 ## Installation
 
-```bash
-npx skills add DannySotzny/skills --skill dependency-track
+Claude Code plugin (recommended):
+
+```
+/plugin marketplace add DannySotzny/skills
+/plugin install dependency-track@dannysotzny-skills
 ```
 
-Or install manually: copy (or symlink) `skills/dependency-track/` into your agent's skills directory, e.g. `~/.claude/skills/dependency-track/`.
+Or copy this folder to `~/.claude/skills/dependency-track/`.
 
 ## Setup
 
 Requirements: `bash`, `curl`, `jq`, `base64` (on Windows: Git Bash plus `jq`).
 
+On first use the agent runs `scripts/dtrack-setup.sh --status`, saves the server URL with `--url`, and asks you to store the API key yourself:
+
 ```bash
-skills/dependency-track/scripts/dtrack-setup.sh          # interactive
-skills/dependency-track/scripts/dtrack-setup.sh --check  # verify existing config
+scripts/dtrack-setup.sh --key     # hidden prompt, in your own terminal
+scripts/dtrack-setup.sh --check   # verify
+scripts/dtrack-setup.sh           # or: fully interactive (URL + key)
 ```
 
-This writes `~/.boring/dependency-track/url` and `~/.boring/dependency-track/apikey` (mode 600). The environment variables `DTRACK_URL`, `DTRACK_API_KEY_FILE` and `DTRACK_CONFIG_DIR` take precedence over the files. See [SKILL.md](SKILL.md) for manual setup.
+This writes `~/.boring/dependency-track/url` and `~/.boring/dependency-track/apikey` (mode 600). The environment variables `DTRACK_URL`, `DTRACK_API_KEY_FILE` and `DTRACK_CONFIG_DIR` take precedence over the files.
 
 Needs a Dependency-Track API key with `VIEW_PORTFOLIO`, `VIEW_VULNERABILITY`, `VULNERABILITY_ANALYSIS`, and `VIEW_POLICY_VIOLATION` permissions.
+
+## Security
+
+- `dtrack-api.sh` never follows redirects and accepts only an API path plus a JSON body, so the API key cannot be sent to any host other than the configured one.
+- The key is passed to curl via a temporary header file (mode 600), not on the command line.
+- UUIDs, enums and page numbers are validated; free text is URL-encoded or passed to jq as `--arg`.
+- Plain `http://` URLs trigger a warning (silence with `DTRACK_ALLOW_HTTP=1`).
+- `SKILL.md` tells the agent to confirm every write (audit, suppress, BOM upload, metrics refresh) and to treat vulnerability texts as untrusted data.
 
 ## Tests
 

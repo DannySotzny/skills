@@ -28,7 +28,7 @@ header "Dependency-Track: Script file checks"
 
 for script in "$DT_SCRIPTS"/*.sh; do
     name=$(basename "$script")
-    [ "$name" = "_config.sh" ] && continue
+    case "$name" in _*.sh) continue ;; esac
 
     if [ -x "$script" ]; then pass "${name}: is executable"; else fail "${name}: not executable"; fi
     if bash -n "$script" 2>/dev/null; then pass "${name}: bash syntax OK"; else fail "${name}: bash syntax error"; fi
@@ -39,9 +39,121 @@ done
 header "Dependency-Track: _config.sh"
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CONFIG="${DT_SCRIPTS}/_config.sh"
+for lib in _config.sh _lib.sh; do
+    if bash -n "${DT_SCRIPTS}/${lib}" 2>/dev/null; then pass "${lib}: bash syntax OK"; else fail "${lib}: bash syntax error"; fi
+done
 
-if bash -n "$CONFIG" 2>/dev/null; then pass "_config.sh: bash syntax OK"; else fail "_config.sh: bash syntax error"; fi
+# ═══════════════════════════════════════════════════════════════════════════════
+header "Dependency-Track: Security hardening"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+API="${DT_SCRIPTS}/dtrack-api.sh"
+if grep -qE 'curl[^#]*[[:space:]]-[a-zA-Z]*L' "$API" || grep -q -- '--location' "$API"; then
+    fail "dtrack-api.sh: follows redirects (-L)"
+else
+    pass "dtrack-api.sh: does not follow redirects"
+fi
+if grep -q 'X-Api-Key: ${DTRACK_API_KEY}"' "$API"; then
+    fail "dtrack-api.sh: API key passed on the curl command line"
+else
+    pass "dtrack-api.sh: API key not on the curl command line"
+fi
+
+SEC_KEY=$(mktemp); echo "fake" > "$SEC_KEY"
+sec_env() { env DTRACK_URL="https://dtrack.invalid" DTRACK_API_KEY_FILE="$SEC_KEY" CURL_RETRIES=0 "$@"; }
+
+run_expect_fail sec_env bash "$API" GET /v1/project https://evil.invalid/
+if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'unsupported argument'; then
+    pass "dtrack-api.sh: rejects extra URL / curl arguments"
+else
+    fail "dtrack-api.sh: accepted extra curl argument" "$CAPTURED_ERR"
+fi
+
+for bad in "https://evil.invalid/v1/x" "/v1/x@evil.invalid" "/v1/a b" "v1/project" "//evil.invalid/v1/"; do
+    run_expect_fail sec_env bash "$API" GET "$bad"
+    if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'endpoint must be'; then
+        pass "dtrack-api.sh: rejects endpoint '${bad}'"
+    else
+        fail "dtrack-api.sh: accepted endpoint '${bad}'" "$CAPTURED_ERR"
+    fi
+done
+
+run_expect_fail sec_env bash "$API" TRACE /v1/project
+if [ $CAPTURED_RC -ne 0 ]; then pass "dtrack-api.sh: rejects unsupported method"; else fail "dtrack-api.sh: accepted TRACE"; fi
+
+run_expect_fail env DTRACK_URL="https://user:pw@evil.invalid" DTRACK_API_KEY_FILE="$SEC_KEY" bash "$API" GET /v1/project
+if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'not a valid server URL'; then
+    pass "_config.sh: rejects URL with credentials"
+else
+    fail "_config.sh: accepted URL with credentials" "$CAPTURED_ERR"
+fi
+
+run_expect_fail env DTRACK_URL="http://dtrack.invalid" DTRACK_API_KEY_FILE="$SEC_KEY" CURL_RETRIES=0 CURL_CONNECT_TIMEOUT=1 bash "$API" GET /v1/project
+if echo "$CAPTURED_ERR" | grep -q 'WARNING: .*plain HTTP'; then pass "_config.sh: warns on plain HTTP"; else fail "_config.sh: no plain-HTTP warning"; fi
+
+for script in dtrack-findings dtrack-project-status dtrack-components dtrack-services dtrack-violations; do
+    run_expect_fail sec_env bash "$DT_SCRIPTS/${script}.sh" "../../v1/user"
+    if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'must be a UUID'; then
+        pass "${script}.sh: rejects non-UUID project id"
+    else
+        fail "${script}.sh: accepted non-UUID project id" "$CAPTURED_ERR"
+    fi
+done
+
+U=00000000-0000-0000-0000-000000000000
+run_expect_fail sec_env bash "$DT_SCRIPTS/dtrack-audit.sh" $U $U $U --state 'NOT_SET"}'
+if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'must be one of'; then
+    pass "dtrack-audit.sh: rejects invalid --state"
+else
+    fail "dtrack-audit.sh: accepted invalid --state" "$CAPTURED_ERR"
+fi
+
+run_expect_fail sec_env bash "$DT_SCRIPTS/dtrack-findings.sh" $U --severity 'HIGH") | env'
+if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'must be one of'; then
+    pass "dtrack-findings.sh: rejects invalid --severity"
+else
+    fail "dtrack-findings.sh: accepted invalid --severity" "$CAPTURED_ERR"
+fi
+
+NOT_BOM=$(mktemp); echo "secret data" > "$NOT_BOM"
+run_expect_fail sec_env bash "$DT_SCRIPTS/dtrack-bom-upload.sh" $U "$NOT_BOM"
+if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'does not look like'; then
+    pass "dtrack-bom-upload.sh: refuses non-BOM files"
+else
+    fail "dtrack-bom-upload.sh: accepted a non-BOM file" "$CAPTURED_ERR"
+fi
+rm -f "$NOT_BOM"
+
+ENC=$(bash -c 'source "$1"; dt_urlencode "a b&c=ü/"' _ "${DT_SCRIPTS}/_lib.sh")
+if [ "$ENC" = "a%20b%26c%3D%C3%BC%2F" ]; then pass "_lib.sh: URL-encodes UTF-8 correctly"; else fail "_lib.sh: wrong encoding: ${ENC}"; fi
+rm -f "$SEC_KEY"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+header "Dependency-Track: Setup modes"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+SETUP="${DT_SCRIPTS}/dtrack-setup.sh"
+CFG_TMP=$(mktemp -d)
+run_expect_fail env DTRACK_CONFIG_DIR="$CFG_TMP" bash "$SETUP" --status
+if [ $CAPTURED_RC -ne 0 ]; then pass "dtrack-setup.sh --status: non-zero when unconfigured"; else fail "dtrack-setup.sh --status: exit 0 without config"; fi
+
+env DTRACK_CONFIG_DIR="$CFG_TMP" bash "$SETUP" --url "dtrack.example.com/" >/dev/null 2>&1
+if [ "$(cat "$CFG_TMP/url" 2>/dev/null)" = "https://dtrack.example.com" ]; then
+    pass "dtrack-setup.sh --url: saves normalized URL"
+else
+    fail "dtrack-setup.sh --url: wrong URL saved: $(cat "$CFG_TMP/url" 2>/dev/null)"
+fi
+
+run_expect_fail env DTRACK_CONFIG_DIR="$CFG_TMP" bash "$SETUP" --url "https://x@evil.invalid"
+if [ $CAPTURED_RC -ne 0 ]; then pass "dtrack-setup.sh --url: rejects URL with credentials"; else fail "dtrack-setup.sh --url: accepted URL with credentials"; fi
+
+run_expect_fail env DTRACK_CONFIG_DIR="$CFG_TMP" bash "$SETUP" --key </dev/null
+if [ $CAPTURED_RC -ne 0 ] && echo "$CAPTURED_ERR" | grep -q 'needs a terminal'; then
+    pass "dtrack-setup.sh --key: refuses to run without a terminal"
+else
+    fail "dtrack-setup.sh --key: did not refuse non-interactive run" "$CAPTURED_ERR"
+fi
+rm -rf "$CFG_TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 header "Dependency-Track: Argument validation"

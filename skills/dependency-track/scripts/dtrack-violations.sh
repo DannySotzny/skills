@@ -3,10 +3,12 @@
 # Usage: dtrack-violations.sh <project-uuid> [--suppressed]
 set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_lib.sh"
 PROJECT_UUID="${1:-}"; SUPPRESSED="false"
-[[ "$2" == "--suppressed" ]] && SUPPRESSED="true"
+[[ "${2:-}" == "--suppressed" ]] && SUPPRESSED="true"
 
 [[ -z "$PROJECT_UUID" ]] && { echo "Usage: $0 <project-uuid> [--suppressed]" >&2; exit 1; }
+dt_require_uuid "project-uuid" "$PROJECT_UUID"
 
 "$SCRIPT_DIR/dtrack-api.sh" GET "/v1/violation/project/${PROJECT_UUID}?suppressed=${SUPPRESSED}&pageSize=100" | \
     jq '[.[] | {
