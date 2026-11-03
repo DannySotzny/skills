@@ -1,0 +1,12 @@
+Dependency-Track skill
+
+Originally from boring-but-good by rezkam
+https://github.com/rezkam/boring-but-good/tree/main/skills/dependency-track
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Modifications in this copy (DannySotzny/skills):
+- Added scripts/dtrack-setup.sh (stand-alone interactive setup replacing the
+  upstream repository-wide setup.sh) and updated references to it.
+- Moved the test suite to tests/test-dependency-track.sh inside the skill and
+  added a check for dtrack-setup.sh.
+- Updated README.md (install source, complete script table, setup, tests).
