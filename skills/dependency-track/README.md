@@ -27,6 +27,7 @@ Dependency-Track tells you which of your 500 dependencies have known CVEs. This 
 | Script | Purpose |
 |--------|---------|
 | `dtrack-setup.sh` | Configuration: `--status`, `--url URL`, `--key` (hidden prompt), `--check` |
+| `dtrack-setup.cmd` | Windows launcher for `dtrack-setup.sh` (PowerShell / cmd, uses Git Bash) |
 | `dtrack-projects.sh` | List/search projects with pagination |
 | `dtrack-project-lookup.sh` | Look up project by name and version |
 | `dtrack-project-status.sh` | Vulnerability summary for a project |
@@ -65,6 +66,14 @@ scripts/dtrack-setup.sh --key     # hidden prompt, in your own terminal
 scripts/dtrack-setup.sh --check   # verify
 scripts/dtrack-setup.sh           # or: fully interactive (URL + key)
 ```
+
+On Windows, run the launcher from PowerShell or cmd instead (same options; needs Git for Windows):
+
+```powershell
+& "$env:USERPROFILE\.codex\plugins\cache\dannysotzny-skills\dependency-track\<version>\skills\dependency-track\scripts\dtrack-setup.cmd"
+```
+
+(For a Claude Code install the folder is under `~\.claude\plugins\cache\…`; `dtrack-setup.sh --status` prints the exact command.)
 
 This writes `~/.boring/dependency-track/url` and `~/.boring/dependency-track/apikey` (mode 600). The environment variables `DTRACK_URL`, `DTRACK_API_KEY_FILE` and `DTRACK_CONFIG_DIR` take precedence over the files.
 

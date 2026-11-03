@@ -21,3 +21,5 @@ Modifications in this copy (DannySotzny/skills):
 - SKILL.md: first-use flow and safety rules (confirm writes, treat API data as
   untrusted, never handle the key in chat).
 - Packaged as a Claude Code plugin via .claude-plugin/marketplace.json.
+- Added scripts/dtrack-setup.cmd (Windows launcher via Git Bash); setup hints
+  show it with a Windows path on Windows.

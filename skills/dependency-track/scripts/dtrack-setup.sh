@@ -6,10 +6,17 @@
 #   --check      Verify the configuration against the server
 #   --url URL    Save the server URL (non-interactive; safe for an agent to run)
 #   --key        Prompt for the API key with hidden input (run this yourself, in a terminal)
+# On Windows, run dtrack-setup.cmd (same options) from PowerShell or cmd.
 set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CFG_DIR="${DTRACK_CONFIG_DIR:-$HOME/.boring/dependency-track}"
 SELF="${SCRIPT_DIR}/dtrack-setup.sh"
+# Command the user should run for interactive steps: on Windows the .cmd launcher with a Windows path
+USER_CMD="$SELF"
+case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*|CYGWIN*)
+        command -v cygpath >/dev/null 2>&1 && USER_CMD="\"$(cygpath -w "${SCRIPT_DIR}/dtrack-setup.cmd")\"" ;;
+esac
 
 MODE="interactive"; URL_ARG=""
 case "${1:-}" in
@@ -19,7 +26,7 @@ case "${1:-}" in
     --key)    MODE="key" ;;
     --url)    MODE="url"; URL_ARG="${2:-}"
               [[ -z "$URL_ARG" ]] && { echo "Usage: $0 --url https://dtrack.example.com" >&2; exit 1; } ;;
-    -h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $1" >&2; echo "Usage: $0 [--check | --status | --url URL | --key]" >&2; exit 1 ;;
 esac
 
@@ -50,8 +57,8 @@ ERROR: This step is interactive and needs a terminal.
 
 Context: stdin is not a TTY, so nothing can be prompted for.
 
-Recovery: open a terminal (Git Bash on Windows) and run:
-  ${SELF} $1
+Recovery: open a terminal (PowerShell or cmd on Windows) and run:
+  ${USER_CMD} $1
 EOF
         exit 1
     fi
@@ -120,7 +127,7 @@ status() {
     else echo "url:    MISSING -> ${SELF} --url https://your-dtrack.example.com"; ok=1; fi
     local keyfile="${DTRACK_API_KEY_FILE:-${CFG_DIR}/apikey}"
     if [[ -s "$keyfile" ]]; then echo "apikey: present (${keyfile})"
-    else echo "apikey: MISSING -> the user runs in their own terminal: ${SELF} --key"; ok=1; fi
+    else echo "apikey: MISSING -> the user runs in their own terminal: ${USER_CMD} --key"; ok=1; fi
     if command -v jq >/dev/null 2>&1; then echo "jq:     ok"
     else echo "jq:     MISSING -> winget install jqlang.jq (Windows) / brew install jq / apt-get install jq"; ok=1; fi
     return $ok
@@ -141,7 +148,7 @@ case "$MODE" in
     status) status ;;
     check)  verify ;;
     url)    save_url "$URL_ARG"
-            [[ -s "${CFG_DIR}/apikey" ]] || echo "Next: the user stores the API key in their own terminal: ${SELF} --key" >&2 ;;
+            [[ -s "${CFG_DIR}/apikey" ]] || echo "Next: the user stores the API key in their own terminal: ${USER_CMD} --key" >&2 ;;
     key)    require_tty "--key"
             [[ -s "${CFG_DIR}/url" ]] || { echo "ERROR: set the URL first: ${SELF} --url https://..." >&2; exit 1; }
             prompt_key

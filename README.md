@@ -25,4 +25,12 @@ Einfach fragen, z. B. „Welche kritischen Findings hat Projekt X in Dependency-
 
 Voraussetzung: `jq` (Windows: `winget install jqlang.jq`, danach Claude neu starten). `curl`, `base64` und Bash bringt Git for Windows mit.
 
+**Windows:** Den API-Key hinterlegst du in PowerShell oder cmd mit dem Starter `dtrack-setup.cmd` (ruft Git Bash auf). Den genauen Pfad nennt dir Claude bzw. Codex; bei einer Codex-Installation z. B.:
+
+```powershell
+& "$env:USERPROFILE\.codex\plugins\cache\dannysotzny-skills\dependency-track\1.1.1\skills\dependency-track\scripts\dtrack-setup.cmd"
+```
+
+**Codex:** Marketplace mit leerem Feld „Sparse-Pfade“ hinzufügen (`codex plugin marketplace add DannySotzny/skills`), dann `codex plugin add dependency-track@dannysotzny-skills`.
+
 > Nur für Claude Code geeignet. Im normalen Chat / Cowork laufen Skills in einer Cloud-Sandbox, die deinen Dependency-Track-Server in der Regel nicht erreicht.

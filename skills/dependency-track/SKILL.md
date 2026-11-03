@@ -7,14 +7,14 @@ description: Query and audit Dependency-Track (DTrack) SCA findings. Use when wo
 
 Interact with the Dependency-Track SCA platform via its REST API.
 
-Script paths below are relative to this skill's base directory (the folder containing this SKILL.md). Run them with `bash` (Git Bash on Windows). Requires `curl`, `jq` and `base64`.
+Script paths below are relative to this skill's base directory (the folder containing this SKILL.md). Run them with `bash` (on Windows: Git Bash, `C:\Program Files\Git\bin\bash.exe`). Requires `curl`, `jq` and `base64`.
 
 ## First use
 
 Before the first call in a session, run `scripts/dtrack-setup.sh --status`.
 
 - **URL missing:** ask the user for the server URL, then run `scripts/dtrack-setup.sh --url <URL>`.
-- **API key missing:** do **not** ask for the key in chat. Tell the user to run the `--key` command printed by `--status` in their own terminal; it prompts with hidden input and verifies the connection. Wait until they confirm.
+- **API key missing:** do **not** ask for the key in chat. Tell the user to run the `--key` command printed by `--status` in their own terminal; it prompts with hidden input and verifies the connection. On Windows `--status` prints the `dtrack-setup.cmd` launcher with a Windows path, which the user can paste into PowerShell or cmd. Wait until they confirm.
 - **jq missing:** give the user the install command printed by `--status`.
 - When everything is present, `scripts/dtrack-setup.sh --check` verifies the connection.
 

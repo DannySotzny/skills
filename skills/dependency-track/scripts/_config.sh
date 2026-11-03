@@ -3,7 +3,12 @@
 set -e
 
 _DTRACK_CONFIG_DIR="${DTRACK_CONFIG_DIR:-$HOME/.boring/dependency-track}"
-_DTRACK_SETUP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dtrack-setup.sh"
+_DTRACK_SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_DTRACK_SETUP="${_DTRACK_SCRIPTS}/dtrack-setup.sh"
+case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*|CYGWIN*)
+        command -v cygpath >/dev/null 2>&1 && _DTRACK_SETUP="\"$(cygpath -w "${_DTRACK_SCRIPTS}/dtrack-setup.cmd")\"" ;;
+esac
 
 # Read URL from file
 if [ -z "$DTRACK_URL" ] && [ -f "${_DTRACK_CONFIG_DIR}/url" ]; then

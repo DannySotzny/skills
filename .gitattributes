@@ -3,3 +3,6 @@
 *.md text eol=lf
 LICENSE text eol=lf
 NOTICE text eol=lf
+*.json text eol=lf
+# Windows batch files need CRLF
+*.cmd text eol=crlf
